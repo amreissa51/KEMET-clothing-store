@@ -1,107 +1,147 @@
 // register.js — إنشاء الحساب
-
 // مسؤوليته الوحيدة: تسجيل مستخدم جديد.
 
-// الـFlow
-// register.html
-//       ↓
-// User enters data
-//       ↓
-// Validation
-//       ↓
-// Check existing users
-//       ↓
-// Create user object
-//       ↓
-// Save in localStorage
-//       ↓
-// Redirect → login.html
-// هيعمل إيه بالتفصيل؟
-// 1. يمسك الـForm
+document.addEventListener("DOMContentLoaded", () => {
+  const registerForm = document.getElementById("register-form");
 
-// مثلاً:
+  if (!registerForm) {
+    console.error("register-form not found in the DOM");
+    return;
+  }
 
-// const registerForm = document.getElementById("register-form");
+  registerForm.addEventListener("submit", handleRegister);
+});
 
-// ويراقب:
+function handleRegister(e) {
+  e.preventDefault();
 
-// registerForm.addEventListener("submit", ...)
-// 2. يقرأ البيانات
+  clearErrors();
 
-// من الـHTML عندنا:
+  // 2. يقرأ البيانات من الفورم
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirm").value;
 
-// Name
-// Email
-// Password
-// Confirm Password
-// Terms checkbox
+  // 3. Validation
+  const isValid = validateRegisterData({ name, email, password, confirmPassword });
+  if (!isValid) {
+    return;
+  }
 
-// ويجيب قيمهم.
+  // 4. يجيب المستخدمين الموجودين من localStorage
+  const users = getUsers();
 
-// 3. Validation
+  // 5. يتأكد إن الإيميل مش موجود
+  const emailExists = users.some((user) => user.email === email);
+  if (emailExists) {
+    setFieldError("email", "This email is already registered.");
+    setStatus("Account already exists.", "error");
+    return;
+  }
 
-// يتأكد من:
+  // 6. يعمل User Object جديد
+  const newUser = {
+    id: Date.now(),
+    name,
+    email,
+    password,
+    createdAt: new Date().toISOString(),
+  };
 
-// Name مش فاضي
-// Email مش فاضي
-// Email شكله صحيح
-// Password موجود
-// Password طوله مناسب
-// Confirm Password = Password
-// Terms متعلم عليها
+  // 7. يحفظه في localStorage
+  users.push(newUser);
+  localStorage.setItem("users", JSON.stringify(users));
 
-// مثلاً:
+  // 8. بعد التسجيل، يروح لصفحة login
+  setStatus("Account created. Redirecting to login…", "success");
+  setTimeout(() => {
+    window.location.href = "login.html";
+  }, 800);
+}
 
-// Password: 12345678
-// Confirm: 1234567
+// ------- Helper Functions -------
 
-// ❌ Passwords do not match
-// 4. يجيب المستخدمين الموجودين
+function getUsers() {
+  const usersJSON = localStorage.getItem("users");
+  return usersJSON ? JSON.parse(usersJSON) : [];
+}
 
-// من:
+function validateRegisterData({ name, email, password, confirmPassword }) {
+  let valid = true;
 
-// localStorage.getItem("users")
+  if (!name) {
+    setFieldError("name", "Please enter your full name.");
+    valid = false;
+  }
 
-// ولو مفيش:
+  if (!email) {
+    setFieldError("email", "Please enter a valid email address.");
+    valid = false;
+  } else if (!isValidEmail(email)) {
+    setFieldError("email", "Please enter a valid email address.");
+    valid = false;
+  }
 
-// []
-// 5. يتأكد إن الـEmail مش موجود
+  if (!password) {
+    setFieldError("password", "Your password must be at least 8 characters.");
+    valid = false;
+  } else if (password.length < 8) {
+    setFieldError("password", "Your password must be at least 8 characters.");
+    valid = false;
+  }
 
-// مثلاً:
+  if (!confirmPassword) {
+    setFieldError("confirm", "Passwords do not match.");
+    valid = false;
+  } else if (password !== confirmPassword) {
+    setFieldError("confirm", "Passwords do not match.");
+    valid = false;
+  }
 
-// users:
-// Ahmed@gmail.com
-// Ali@gmail.com
+  return valid;
+}
 
-// New:
-// Ahmed@gmail.com
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
 
-// ❌ Account already exists
-// 6. يعمل User Object
+// يعرض رسالة الخطأ الجاهزة جوه الـHTML لكل حقل (span بـ id مثل name-error)
+function setFieldError(fieldId, message) {
+  const input = document.getElementById(fieldId);
+  const errorSpan = document.getElementById(`${fieldId}-error`);
 
-// مثلاً:
+  if (input) {
+    input.setAttribute("aria-invalid", "true");
+  }
 
-// {
-//   id: 1,
-//   name: "Ahmed",
-//   email: "ahmed@gmail.com",
-//   password: "12345678",
-//   createdAt: "..."
-// }
-// 7. يحفظه
-// users
-//  ↓
-// localStorage
-// 8. بعد التسجيل
+  if (errorSpan) {
+    if (message) errorSpan.textContent = message;
+    errorSpan.style.display = "block";
+  }
+}
 
-// يروح:
+function clearErrors() {
+  const errorSpans = document.querySelectorAll(".error");
+  errorSpans.forEach((span) => {
+    span.style.display = "none";
+  });
 
-// register.html
-//       ↓
-// login.html
-// إذن register.js لا يعمل:
+  const inputs = document.querySelectorAll("#register-form input[aria-invalid]");
+  inputs.forEach((input) => input.removeAttribute("aria-invalid"));
 
-// ❌ Login
-// ❌ Cart
-// ❌ Products
-// ❌ Navbar
+  setStatus("");
+}
+
+// يعرض رسالة عامة فوق الزرار (register-status)
+function setStatus(message, type = "") {
+  const statusEl = document.getElementById("register-status");
+  if (!statusEl) return;
+
+  statusEl.textContent = message;
+  statusEl.classList.remove("status-error", "status-success");
+
+  if (type === "error") statusEl.classList.add("status-error");
+  if (type === "success") statusEl.classList.add("status-success");
+}
