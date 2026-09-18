@@ -141,6 +141,21 @@
   border-bottom-color: var(--accent);
 }
 
+.auth-status {
+  min-height: 1.25rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.auth-status.status-error {
+  color: #e06a4b;
+}
+
+.auth-status.status-success {
+  color: #3fae5a;
+}
+
 .auth-row {
   display: flex;
   align-items: center;
